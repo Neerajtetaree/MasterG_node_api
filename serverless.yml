@@ -1,0 +1,36 @@
+service: master-g-api
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-south-1'}
+  memorySize: 128
+  logRetentionInDays: 1
+
+functions:
+  getTasks:
+    handler: src/handlers/getTask.handler
+    events:
+      - httpApi:
+          path: /tasks
+          method: get
+
+  createTask:
+    handler: src/handlers/createTask.handler
+    events:
+      - httpApi:
+          path: /tasks
+          method: post
+
+  updateTask:
+    handler: src/handlers/updateTask.handler
+    events:
+      - httpApi:
+          path: /tasks/{id}
+          method: put
+
+plugins:
+  - serverless-offline
