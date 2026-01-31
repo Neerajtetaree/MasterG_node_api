@@ -11,11 +11,46 @@
       "region": "ap-south-1",
       "memorySize": 128,
       "logRetentionInDays": 1,
+      "environment": {
+        "TASKS_TABLE": "master-g-api-tasks-dev",
+        "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+      },
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Scan",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      },
+      "httpApi": {
+        "authorizers": {
+          "tokenAuth": {
+            "type": "request",
+            "identitySource": "$request.header.authorization",
+            "functionName": "tokenAuthrizer"
+          }
+        }
+      },
       "versionFunctions": true,
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "The AWS CloudFormation template for this Serverless application",
         "Resources": {
+          "TokenAuthrizerLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/master-g-api-dev-tokenAuthrizer",
+              "RetentionInDays": 1
+            }
+          },
           "GetTasksLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
@@ -94,6 +129,9 @@
                             "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/master-g-api-dev*:*:*"
                           }
                         ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iam\"][\"role\"][\"statements\"][0]"
                       }
                     ]
                   }
@@ -115,18 +153,53 @@
               }
             }
           },
+          "TokenAuthrizerLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-ap-south-1-e9b5fdaf-fa48",
+                "S3Key": "serverless/master-g-api/dev/1769859417379-2026-01-31T11:36:57.379Z/master-g-api.zip"
+              },
+              "Handler": "src/authorizers/tokenAuthorizer.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "master-g-api-dev-tokenAuthrizer",
+              "MemorySize": 128,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "TASKS_TABLE": "master-g-api-tasks-dev",
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "TokenAuthrizerLogGroup"
+            ]
+          },
           "GetTasksLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-ap-south-1-e9b5fdaf-fa48",
-                "S3Key": "serverless/master-g-api/dev/1769630607955-2026-01-28T20:03:27.955Z/master-g-api.zip"
+                "S3Key": "serverless/master-g-api/dev/1769859417379-2026-01-31T11:36:57.379Z/master-g-api.zip"
               },
               "Handler": "src/handlers/getTask.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "master-g-api-dev-getTasks",
               "MemorySize": 128,
               "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "TASKS_TABLE": "master-g-api-tasks-dev",
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              },
               "Role": {
                 "Fn::GetAtt": [
                   "IamRoleLambdaExecution",
@@ -143,13 +216,19 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-ap-south-1-e9b5fdaf-fa48",
-                "S3Key": "serverless/master-g-api/dev/1769630607955-2026-01-28T20:03:27.955Z/master-g-api.zip"
+                "S3Key": "serverless/master-g-api/dev/1769859417379-2026-01-31T11:36:57.379Z/master-g-api.zip"
               },
               "Handler": "src/handlers/createTask.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "master-g-api-dev-createTask",
               "MemorySize": 128,
               "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "TASKS_TABLE": "master-g-api-tasks-dev",
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              },
               "Role": {
                 "Fn::GetAtt": [
                   "IamRoleLambdaExecution",
@@ -166,13 +245,19 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-ap-south-1-e9b5fdaf-fa48",
-                "S3Key": "serverless/master-g-api/dev/1769630607955-2026-01-28T20:03:27.955Z/master-g-api.zip"
+                "S3Key": "serverless/master-g-api/dev/1769859417379-2026-01-31T11:36:57.379Z/master-g-api.zip"
               },
               "Handler": "src/handlers/updateTask.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "master-g-api-dev-updateTask",
               "MemorySize": 128,
               "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "TASKS_TABLE": "master-g-api-tasks-dev",
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              },
               "Role": {
                 "Fn::GetAtt": [
                   "IamRoleLambdaExecution",
@@ -184,34 +269,44 @@
               "UpdateTaskLogGroup"
             ]
           },
-          "GetTasksLambdaVersionD9EeEGUyIb4Btjhe9lBi4QZx3knCbYWqIvuculDHPQ": {
+          "TokenAuthrizerLambdaVersionxnck1JUyVvWuWVW5nKYCe36dMJT7k7atr1OOm7XTsM": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "TokenAuthrizerLambdaFunction"
+              },
+              "CodeSha256": "ucc5cYg2KD20fL3RWozsXHnKR3aJzZm7VYqwQOfJDiU="
+            }
+          },
+          "GetTasksLambdaVersionbjBIMvnH73JsU3Q9gIhXygK584eW7rqfeuNLlrck": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetTasksLambdaFunction"
               },
-              "CodeSha256": "cCoCx3jXwdT9ZtiEuuKx9g6165v33E4hTNqzyzPC0mQ="
+              "CodeSha256": "ucc5cYg2KD20fL3RWozsXHnKR3aJzZm7VYqwQOfJDiU="
             }
           },
-          "CreateTaskLambdaVersionXljJoAm4PLUjgn1jG9AV4tOnlWCeLbOnDpI2eb4Y": {
+          "CreateTaskLambdaVersionDDYhG6j3RGvh4fTzbhR246JZiWjw6OSSao2RzhtGA": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "CreateTaskLambdaFunction"
               },
-              "CodeSha256": "cCoCx3jXwdT9ZtiEuuKx9g6165v33E4hTNqzyzPC0mQ="
+              "CodeSha256": "ucc5cYg2KD20fL3RWozsXHnKR3aJzZm7VYqwQOfJDiU="
             }
           },
-          "UpdateTaskLambdaVersionKmSxSEfWjLTrtaJKyDkFGVDlwF6lt6ne3jiOEK9Y": {
+          "UpdateTaskLambdaVersionbZSAk7hSIwvK4tB6Ozv0OHQyyuAkEjEzPCTYU2Zls": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "UpdateTaskLambdaFunction"
               },
-              "CodeSha256": "cCoCx3jXwdT9ZtiEuuKx9g6165v33E4hTNqzyzPC0mQ="
+              "CodeSha256": "ucc5cYg2KD20fL3RWozsXHnKR3aJzZm7VYqwQOfJDiU="
             }
           },
           "HttpApi": {
@@ -231,6 +326,77 @@
               "AutoDeploy": true,
               "DefaultRouteSettings": {
                 "DetailedMetricsEnabled": false
+              }
+            }
+          },
+          "TokenAuthLambdaAuthorizerPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "TokenAuthrizerLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiAuthorizerTokenAuth": {
+            "Type": "AWS::ApiGatewayV2::Authorizer",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "Name": "tokenAuth",
+              "IdentitySource": [
+                "$request.header.authorization"
+              ],
+              "AuthorizerType": "REQUEST",
+              "AuthorizerPayloadFormatVersion": "2.0",
+              "AuthorizerUri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"TokenAuthLambdaAuthorizerPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+                    },
+                    "/invocations"
+                  ]
+                ]
               }
             }
           },
@@ -302,6 +468,10 @@
                     }
                   ]
                 ]
+              },
+              "AuthorizationType": "CUSTOM",
+              "AuthorizerId": {
+                "Ref": "HttpApiAuthorizerTokenAuth"
               }
             },
             "DependsOn": "HttpApiIntegrationGetTasks"
@@ -374,6 +544,10 @@
                     }
                   ]
                 ]
+              },
+              "AuthorizationType": "CUSTOM",
+              "AuthorizerId": {
+                "Ref": "HttpApiAuthorizerTokenAuth"
               }
             },
             "DependsOn": "HttpApiIntegrationCreateTask"
@@ -446,9 +620,32 @@
                     }
                   ]
                 ]
+              },
+              "AuthorizationType": "CUSTOM",
+              "AuthorizerId": {
+                "Ref": "HttpApiAuthorizerTokenAuth"
               }
             },
             "DependsOn": "HttpApiIntegrationUpdateTask"
+          },
+          "TasksTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "tasks-dev",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "N"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ]
+            }
           }
         },
         "Outputs": {
@@ -458,10 +655,19 @@
               "Name": "sls-master-g-api-dev-ServerlessDeploymentBucketName"
             }
           },
+          "TokenAuthrizerLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "TokenAuthrizerLambdaVersionxnck1JUyVvWuWVW5nKYCe36dMJT7k7atr1OOm7XTsM"
+            },
+            "Export": {
+              "Name": "sls-master-g-api-dev-TokenAuthrizerLambdaFunctionQualifiedArn"
+            }
+          },
           "GetTasksLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetTasksLambdaVersionD9EeEGUyIb4Btjhe9lBi4QZx3knCbYWqIvuculDHPQ"
+              "Ref": "GetTasksLambdaVersionbjBIMvnH73JsU3Q9gIhXygK584eW7rqfeuNLlrck"
             },
             "Export": {
               "Name": "sls-master-g-api-dev-GetTasksLambdaFunctionQualifiedArn"
@@ -470,7 +676,7 @@
           "CreateTaskLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "CreateTaskLambdaVersionXljJoAm4PLUjgn1jG9AV4tOnlWCeLbOnDpI2eb4Y"
+              "Ref": "CreateTaskLambdaVersionDDYhG6j3RGvh4fTzbhR246JZiWjw6OSSao2RzhtGA"
             },
             "Export": {
               "Name": "sls-master-g-api-dev-CreateTaskLambdaFunctionQualifiedArn"
@@ -479,7 +685,7 @@
           "UpdateTaskLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "UpdateTaskLambdaVersionKmSxSEfWjLTrtaJKyDkFGVDlwF6lt6ne3jiOEK9Y"
+              "Ref": "UpdateTaskLambdaVersionbZSAk7hSIwvK4tB6Ozv0OHQyyuAkEjEzPCTYU2Zls"
             },
             "Export": {
               "Name": "sls-master-g-api-dev-UpdateTaskLambdaFunctionQualifiedArn"
@@ -524,17 +730,30 @@
       "vpc": {}
     },
     "plugins": [
-      "serverless-offline"
+      "serverless-offline",
+      "serverless-plugin-include-dependencies"
     ],
     "pluginsData": {},
     "functions": {
+      "tokenAuthrizer": {
+        "handler": "src/authorizers/tokenAuthorizer.handler",
+        "events": [],
+        "name": "master-g-api-dev-tokenAuthrizer",
+        "package": {},
+        "memory": 128,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "TokenAuthrizerLambdaVersionxnck1JUyVvWuWVW5nKYCe36dMJT7k7atr1OOm7XTsM"
+      },
       "getTasks": {
         "handler": "src/handlers/getTask.handler",
         "events": [
           {
             "httpApi": {
               "path": "/tasks",
-              "method": "get"
+              "method": "get",
+              "authorizer": "tokenAuth"
             },
             "resolvedMethod": "GET",
             "resolvedPath": "/tasks"
@@ -546,7 +765,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetTasksLambdaVersionD9EeEGUyIb4Btjhe9lBi4QZx3knCbYWqIvuculDHPQ"
+        "versionLogicalId": "GetTasksLambdaVersionbjBIMvnH73JsU3Q9gIhXygK584eW7rqfeuNLlrck"
       },
       "createTask": {
         "handler": "src/handlers/createTask.handler",
@@ -554,7 +773,8 @@
           {
             "httpApi": {
               "path": "/tasks",
-              "method": "post"
+              "method": "post",
+              "authorizer": "tokenAuth"
             },
             "resolvedMethod": "POST",
             "resolvedPath": "/tasks"
@@ -566,7 +786,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "CreateTaskLambdaVersionXljJoAm4PLUjgn1jG9AV4tOnlWCeLbOnDpI2eb4Y"
+        "versionLogicalId": "CreateTaskLambdaVersionDDYhG6j3RGvh4fTzbhR246JZiWjw6OSSao2RzhtGA"
       },
       "updateTask": {
         "handler": "src/handlers/updateTask.handler",
@@ -574,7 +794,8 @@
           {
             "httpApi": {
               "path": "/tasks/{id}",
-              "method": "put"
+              "method": "put",
+              "authorizer": "tokenAuth"
             },
             "resolvedMethod": "PUT",
             "resolvedPath": "/tasks/{id}"
@@ -586,8 +807,32 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "UpdateTaskLambdaVersionKmSxSEfWjLTrtaJKyDkFGVDlwF6lt6ne3jiOEK9Y"
+        "versionLogicalId": "UpdateTaskLambdaVersionbZSAk7hSIwvK4tB6Ozv0OHQyyuAkEjEzPCTYU2Zls"
       }
+    },
+    "resources": {
+      "Resources": {
+        "TasksTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "tasks-dev",
+            "BillingMode": "PAY_PER_REQUEST",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ]
+          }
+        }
+      },
+      "Outputs": {}
     },
     "configValidationMode": "warn",
     "serviceFilename": "serverless",
@@ -600,6 +845,9 @@
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
       },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      },
       "plugins": {
         "$ref": "$[\"service\"][\"plugins\"]"
       }
@@ -610,7 +858,7 @@
     "artifact": "/Applications/MAMP/htdocs/MasterG/node-express-mongodb/.serverless/master-g-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/master-g-api/dev/1769630607955-2026-01-28T20:03:27.955Z",
+    "artifactDirectoryName": "serverless/master-g-api/dev/1769859417379-2026-01-31T11:36:57.379Z",
     "artifact": "master-g-api.zip"
   }
 }

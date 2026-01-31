@@ -1,14 +1,16 @@
 @host = https://eoylgi3jhd.execute-api.ap-south-1.amazonaws.com
 
 GET {{host}}/tasks
+Authorization: deny-token
 
 ###
 
 POST {{host}}/tasks
 Content-Type: application/json
+Authorization: allow-token
 
 {
-  "id": "3",
+  "id": 3,
   "title": "New Task",
   "description": "This is a new task."
 }
@@ -18,6 +20,7 @@ Content-Type: application/json
 
 PUT {{host}}/tasks/3
 Content-Type: application/json
+Authorization: allow-token
 
 {
   "title": "Updated Task",
